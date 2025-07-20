@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>White Invisibility Cloak</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f0f0f0;
+    }
+    #instructions {
+      margin: 20px;
+      padding: 15px;
+      background-color: #ccefff;
+      border-radius: 5px;
+    }
+    #container {
+
+        
+      position: relative;
+      margin: 0 auto;
+      width: 640px;
+    }
+    #video, #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #video {
+      transform: scaleX(-1); /* Mirror effect */
+      visibility: hidden;
+    }
+    #controls {
+      margin: 20px;
+      padding: 10px;
+      background-color: #e0e0e0;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>White Invisibility Cloak</h1>
+  <div id="instructions">
+    Your white cloak is loading...<br>
+    Hide from your webcam for the first 3 seconds as it captures the background.
+  </div>
+
+  <div id="container">
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+  </div>
+
+  <div id="controls">
+    <div>
+      <label>Tolerance: <span id="tolValue">30</span></label>
+      <input type="range" id="tolRange" min="10" max="100" value="30">
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const instructions = document.getElementById('instructions');
+
+    let bgFrame = null;
+    let isBackgroundCaptured = false;
+
+    let tolerance = 30;
+    const tolRange = document.getElementById('tolRange');
+    const tolValue = document.getElementById('tolValue');
+
+    tolRange.addEventListener('input', () => {
+      tolerance = parseInt(tolRange.value);
+      tolValue.textContent = tolerance;
+    });
+
+    async function startVideo() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+
+        video.addEventListener('playing', () => {
+          setTimeout(captureBackground, 3000); // Capture background after 3 seconds
+          requestAnimationFrame(processFrame);
+        });
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        instructions.textContent = "Error accessing camera. Please allow camera permissions.";
+      }
+    }
+
+    function captureBackground() {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+      bgFrame = new Image();
+      bgFrame.src = tempCanvas.toDataURL();
+
+      isBackgroundCaptured = true;
+      instructions.textContent = "Background captured! Show your white cloak to become invisible! Adjust tolerance if needed.";
+    }
+
+    function processFrame() {
+      if (!isBackgroundCaptured || !bgFrame.complete) {
+        requestAnimationFrame(processFrame);
+        return;
+      }
+
+      // Draw mirrored video frame
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        // Convert to HSV
+        const hsv = rgbToHsv(r, g, b);
+
+        // White detection: high brightness, low saturation
+        const isWhite = (hsv.v >= (255 - tolerance)) && (hsv.s <= tolerance);
+
+        if (isWhite) {
+          data[i + 3] = 0; // Make pixel transparent
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+
+      // Draw background behind transparent areas
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.drawImage(bgFrame, 0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = 'source-over';
+
+      requestAnimationFrame(processFrame);
+    }
+
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, v = max;
+
+      const d = max - min;
+      s = max === 0 ? 0 : d / max;
+
+      if (max === min) {
+        h = 0;
+      } else {
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+
+      return {
+        h: h * 360,
+        s: s * 255,
+        v: v * 255
+      };
+    }
+
+    startVideo();
+  </script>
+</body>
+</html>
