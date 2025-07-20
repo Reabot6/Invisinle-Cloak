@@ -49,8 +49,8 @@ Don’t blame me if your dog disappears forever.
 ## ⚙️ **How to run it locally**
 
 ```bash
-git clone https://github.com/username/white-invisibility-cloak.git
-cd white-invisibility-cloak
+git clone https://github.com/Reabot6/white-invisinle-cloak.git
+cd white-invisinle-cloak
 # Just open index.html in your browser
 ```
 
