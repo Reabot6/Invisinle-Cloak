@@ -40,7 +40,7 @@ In long:
 
 ## 🚀 **Try it live**
 
-👉 [inveseeble.netlify.app]
+👉 (https://inveeseeblee.netlify.app/)
 
 Don’t blame me if your dog disappears forever.
 
